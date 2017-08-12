@@ -1,0 +1,263 @@
+let { h, render, Component } = preact; // import { ... } from 'preact';
+/** @jsx h */
+const Form = props => {
+  return (
+    <form onSubmit={props.this.search} action="javascript:void(0)">
+      <input
+        type="search"
+        placeholder="Search for a movie"
+        value={props.value}
+        onChange={props.this.setQuery}
+      />
+    </form>
+  );
+};
+const changeBackdrop = path => {
+  var container = document.querySelector("main");
+  var background = "";
+  if (path != null) {
+    background = `linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.5) 50%, rgba(0, 0, 0, 0) 100%), url(https://image.tmdb.org/t/p/w1280${path}) no-repeat center center`;
+  } else {
+    background = "rgb(16, 16, 16)";
+  }
+
+  container.style.background = background;
+  container.style.backgroundSize = "cover";
+};
+const formatRuntime = runtime => {
+  const minutes = runtime % 60;
+  const hours = Math.floor(runtime / 60);
+  return `${hours} ${hours > 1 ? "hours" : "hour"} ${minutes} minutes`;
+};
+const formatReleaseDate = date => {
+  var dateArray = date.split("-").reverse();
+  var day = dateArray[0];
+  var month = "";
+  switch (parseInt(dateArray[1])) {
+    case 1:
+      month = "January";
+      break;
+    case 2:
+      month = "February";
+      break;
+    case 3:
+      month = "March";
+      break;
+    case 4:
+      month = "April";
+      break;
+    case 5:
+      month = "May";
+      break;
+    case 6:
+      month = "June";
+      break;
+    case 7:
+      month = "July";
+      break;
+    case 8:
+      month = "August";
+      break;
+    case 9:
+      month = "September";
+      break;
+    case 10:
+      month = "October";
+      break;
+    case 11:
+      month = "November";
+      break;
+    case 12:
+      month = "December";
+      break;
+    default:
+      month = "";
+  }
+  var year = dateArray[2];
+  return `${day} ${month} ${year}`;
+};
+const formatTitleDate = date => date.split("-")[0];
+const getGenreNames = genres => {
+  let genreArray = genres.map(genre => genre.name);
+  return genreArray.join(", ");
+};
+const getCompanyNames = companies => {
+  let companyArray = companies.map(company => company.name);
+  return companyArray.join(", ");
+};
+const getCountryNames = countries => {
+  let productionCountries = countries.map(country => country.name);
+  return productionCountries.join(", ");
+};
+const getMovieIdAndRelated = name => {
+  return fetch(
+    `https://api.themoviedb.org/3/search/movie?api_key=d3449ff6ec0c027623bf6b6f5fff78b3&language=en-US&query=${name}&page=1&include_adult=false`
+  )
+    .then(resp => resp.json())
+    .then(data => ({
+      id: data.results[0].id,
+      related: data.results.splice(1)
+    }))
+    .catch(err => console.error(err));
+};
+const getMovieById = (id, related) => {
+  return fetch(
+    `https://api.themoviedb.org/3/movie/${id}?api_key=d3449ff6ec0c027623bf6b6f5fff78b3&language=en-US`
+  )
+    .then(resp => resp.json())
+    .then(data => ({ movie: data, related: related }))
+    .catch(err => console.error(err));
+};
+const RelatedMovies = props => {
+  const related = props.related;
+  const listItems = related.map((movie, i) => {
+    return (
+      <li>
+        <span>{movie.title}</span> ({movie.release_date.split("-")[0]})
+      </li>
+    );
+  });
+  return <ul id="related">{listItems}</ul>;
+};
+const Results = props => {
+  const movie = props.movie;
+  const related = props.related;
+  return (
+    <div class="results">
+      <div class="movie">
+      <div class="movie-details">
+        <div class="movie-details-container">
+          <div class="column column-md">
+            <img
+              src={"https://image.tmdb.org/t/p/w500" + movie.poster_path}
+              id="poster"
+            />
+          </div>
+          <div class="column column-md">
+            <h1 id="title">
+              {movie.title}
+              <span id="date" style="padding: 0 0.5rem;">
+                ({formatTitleDate(movie.release_date)})
+              </span>
+            </h1>
+            <div class="row">
+              <span class="badge">
+                <span id="status">{movie.status}</span>
+              </span>
+            </div>
+            <div class="row">
+              {formatRuntime(movie.runtime)} | {getGenreNames(movie.genres)} |
+              {formatReleaseDate(movie.release_date)}
+            </div>
+            <h3 id="tagline">{movie.tagline}</h3>
+            <div id="overview">
+              <p id="synopsis">{movie.overview}</p>
+            </div>
+            <div class="row">
+              <h2>Company Credits</h2>
+              <div id="companies">
+                {getCompanyNames(movie.production_companies)}
+              </div>
+            </div>
+            <div class="row">
+              <h2>Countries</h2>
+              <div id="countries">
+                {getCountryNames(movie.production_countries)}
+              </div>
+            </div>
+            <div class="row">
+              <h2>Box Office</h2>
+              <div id="budget">
+                <strong>Budget:</strong> ${movie.budget.toLocaleString()}
+              </div>
+              <div id="revenue">
+                <strong>Revenue:</strong> ${movie.revenue.toLocaleString()}
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="column column-md">
+                <div class="ratings">
+                  <h2>Rating</h2>
+                  <span id="rating">{movie.vote_average}/10</span>
+                </div>
+              </div>
+              <div class="column column-md">
+                <h2>Runtime</h2>
+                <div>
+                  <div id="runtime">{movie.runtime || 0} minutes</div>
+                </div>
+              </div>
+              <div class="column column-lg">
+                <h2>Related</h2>
+                <div class="related">
+                  {related ? <RelatedMovies related={related} /> : ""}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+  );
+};
+class MovieCard extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      query: "",
+      data: {
+        movie: [],
+        related: []
+      }
+    };
+    this.setQuery = this.setQuery.bind(this);
+    this.search = this.search.bind(this);
+  }
+  componentWillMount() {
+    const default_movie = "my neighbor totoro";
+    getMovieIdAndRelated(default_movie).then(res => {
+      getMovieById(res.id, res.related).then(data => {
+        this.setState({
+          data: {
+            movie: data.movie,
+            related: data.related
+          }
+        });
+        changeBackdrop(data.movie.backdrop_path);
+      });
+    });
+  }
+  setQuery(e) {
+    this.setState({
+      query: e.target.value
+    });
+  }
+  search() {
+    const name = this.state.query;
+    getMovieIdAndRelated(name).then(res => {
+      getMovieById(res.id, res.related).then(data => {
+        this.setState({
+          data: {
+            movie: data.movie,
+            related: data.related
+          }
+        });
+        changeBackdrop(data.movie.backdrop_path);
+      });
+    });
+  }
+  render({}, state) {
+    const movieLoaded = state.data.movie.id;
+    return (
+      <div class="movie-card">
+        <Form value={state.query} this={this} />
+        {movieLoaded
+          ? <Results movie={state.data.movie} related={state.data.related} />
+          : <p>Loading...</p>}
+      </div>
+    );
+  }
+}
+render(<MovieCard />, document.querySelector("main"));
